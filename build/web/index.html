@@ -488,3 +488,43 @@ frameborder="1"
 
 </body>
 </html>
+
+<script>
+// Diagnostic checks to help debug black-screen issues when hosted on GitHub Pages.
+// It reports basic fetch results for key assets into the #status element and console.
+(async function(){
+    const status = document.getElementById('status') || document.createElement('div');
+    function show(msg, isErr){
+        try{ status.innerText = msg; status.style.color = isErr ? 'red' : 'black'; }catch(e){}
+        console.log('[diagnostic]', msg);
+    }
+
+    // Small delay to allow page to initialize
+    await new Promise(r=>setTimeout(r, 200));
+
+    // Check local APK
+    try{
+        show('Checking local tetris.apk...');
+        const r = await fetch('tetris.apk', { method: 'HEAD' });
+        if(!r.ok) show('tetris.apk fetch failed: ' + r.status, true);
+        else show('tetris.apk OK: ' + r.status);
+    }catch(err){
+        show('tetris.apk fetch error: ' + err, true);
+    }
+
+    // Check pythons.js (CDN)
+    try{
+        show('Checking pythons.js (cdn)...');
+        const r2 = await fetch('https://pygame-web.github.io/archives/0.9/pythons.js', { method: 'HEAD' });
+        if(!r2.ok) show('pythons.js fetch failed: ' + r2.status, true);
+        else show('pythons.js OK');
+    }catch(err){
+        show('pythons.js fetch error: ' + err, true);
+    }
+
+    // Quick runtime sanity hint
+    if(typeof Module === 'undefined' && typeof window.pythons === 'undefined'){
+        show('Warning: runtime objects not present yet — if page stays black, open DevTools (F12) and check Console/Network.', true);
+    }
+})();
+</script>
