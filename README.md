@@ -4,4 +4,4 @@
 
 ##  Play Now
 
- [Launch the Game on GitHub Pages](https://lawrencedaboss.github.io/trash_sorter/)  
+ [Launch the Game on GitHub Pages](https://lawrencedaboss.github.io/tetris/)  
