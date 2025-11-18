@@ -1,488 +1,430 @@
-<html lang="en-us"><script src="https://pygame-web.github.io/archives/0.9/pythons.js" type=module id=site data-LINES=50 data-CONSOLE=25 data-python=python3.12 data-os=vtx,fs,snd,gui async defer>#<!--
-
-print("""
-Loading tetris from tetris.apk
-    Pygbag Version : 0.9.3
-    Template Version : 0.9.0
-    Python  : 3.12
-    CDN URL : https://pygame-web.github.io/archives/0.9/
-    Screen  : 1280x720
-    Title   : tetris
-    Folder  : tetris
-    Authors : pgw
-    SPDX-License-Identifier: cookiecutter.spdx
-
-""")
-
-
-# screen pixels (real, hardware)
-WIDTH=1024  # 1280
-HEIGHT=600  # 720
-
-# reference/idealized screen pixels
-REFX = 1980
-REFY = 1080
-
-def u(real, ref, v):
-    if abs(v)<0.9999999:
-        result = int( (float(real)/100.0) * (v*1000))
-        if v<0:
-            return real-result
-        return result
-    return int( (real/ref) * v )
-
-def ux(*argv):
-    global WIDTH, REFX
-    acc = 0
-    for v in argv:
-        acc += u(WIDTH, REFX, v)
-    return acc
-
-def uy(*argv):
-    global HEIGHT, REFY
-    acc = 0
-    for v in argv:
-        acc += u(HEIGHT, REFY, v)
-    return acc
-
-
-
-
-# do not rename
-async def custom_site():
-
-    import sys
-    import asyncio
-    import platform
-    import json
-    from pathlib import Path
-
-
-
-    import embed
-
-
-    platform.document.body.style.background = "#7f7f7f"
-
-    import pygame
-
-    def compose():
-        pygame.display.update()
-        window.chromakey(None, *screen.get_colorkey(), 40)
-
-    pygame.init()
-    pygame.font.init()
-
-    screen = pygame.display.set_mode([ux(.100),uy(.100)], pygame.SRCALPHA, 32)
-    screen.set_colorkey( (0,0,0,0), pygame.RLEACCEL )
-    screen.fill( (0,0,0,0) )
-
-    compose()
-
-    platform.window.transfer.hidden = true
-    platform.window.canvas.style.visibility = "visible"
-
-
-
-    apk = "tetris.apk"
-
-    bundle = "tetris"
-
-    # the C or js loader could do that but be explicit.
-    appdir = Path(f"/data/data/{bundle}") # /data/data/tetris
-    appdir.mkdir()
-
-
-    # mount apk
-
-    cfg = {
-        "io": "url",
-        "type":"mount",
-        "mount" : {
-            "point" : appdir.as_posix(),
-            "path" : "/",
-        },
-        "path" : f"/ => {appdir.as_posix()}",
-    }
-
-
-    track = platform.window.MM.prepare(apk, json.dumps(cfg))
-
-    marginx = ux(.020) # 20%
-    marginy = uy(.045) # 45%
-
-
-    def pg_bar(pos):
-        nonlocal marginx, marginy
-        # resolution of progress bar, recalculate since it may not be know yet.
-        total = track.len or 10  # avoid div0
-        slot = ux(.060)/ total # 60%
-
-        pygame.draw.rect(screen,(10,10,10),( marginx-ux(10), marginy-uy(10), (total*slot)+ux(20), uy(110) ) )
-        pygame.draw.rect(screen,(0,255,0), ( marginx, marginy, track.pos*slot, uy(90)) )
-
-    # wait until zip mount + overlayfs is complete
-    while not track.ready:
-        pg_bar(track.pos)
-        compose()
-        await asyncio.sleep(.1)
-
-    # fill it up in case it was cached and instant download
-    pg_bar(track.len)
-    compose()
-
-
-    # preloader will change dir and prepend it to sys.path
-    platform.run_main(PyConfig, loaderhome= appdir / "assets", loadermain=None)
-
-
-    # wait preloading complete
-    # that includes images and wasm compilation of bundled modules
-    while embed.counter()<0:
-        await asyncio.sleep(.1)
-
-    main = appdir / "assets" / "main.py"
-
-    # start async top level machinery and add a console.
-    await TopLevel_async_handler.start_toplevel(platform.shell, console=window.python.config.debug)
-
-    # now that apk is mounted we have access to font cache
-    # but we need to fill __file__ that is not yet set
-    __import__(__name__).__file__ = str(main)
-
-
-    # now make a prompt
-    fnt = pygame.sysfont.SysFont("freesans",  uy(80) )
-
-    def ui_callback(pkg, error=None):
-        nonlocal fnt
-        if error:
-            prompt = fnt.render(f"{error}", True, "black")
-        else:
-            prompt = fnt.render(f"Setting [{pkg}] up", True, "black")
-        pg_bar(track.len)
-        screen.blit(prompt, ( marginx+ ux(80), marginy - uy(10) ) )
-        compose()
-
-    # test/wait if user media interaction required
-    if not platform.window.MM.UME:
-
-        # now make a prompt
-        fnt = pygame.sysfont.SysFont("freesans",  uy(80) )
-        prompt = fnt.render("Ready to start !", True, "blue")
-        pg_bar(track.len)
-        screen.blit(prompt, ( marginx+ ux(80), marginy - uy(10) ) )
-        compose()
-        print("""
-        * Waiting for media user engagement : please click/touch page *
-    """)
-        while not platform.window.MM.UME:
-            await asyncio.sleep(.1)
-
-    # cleanup
-    screen.fill( (0,0,0,0) )
-    pygame.display.flip()
-
-    await shell.runpy(main, callback=ui_callback)
-
-
-
-import asyncio
-
-asyncio.run( custom_site() )
-
-
-
-
-
-
-
-
-
-
-
-
-# BEGIN BLOCK
-#
-# now this is the html part you can (and should) customize
-# It is not mandatory : pygame-script when it reads the first line (also called
-# shebang ) of above code create absolute minimal widget set
-# required for running with default rules
-#
-# do not alter that comment block it is separating python code from html code
-# =============================================================================
-# --></script><head><!--
-//=============================================================================
-//
-//
-//
-//
-//
-//
-//
-
-    {%- if cookiecutter.comment != "" -%}
-{{cookiecutter.comment}}
-    {% endif %}
-
---><script type="application/javascript">
-// END BLOCK
-
-
-
-// this dict is available under PyConfig.config from __main__
-
-config = {
-    xtermjs : "1" ,
-    _sdl2 : "canvas",
-    user_canvas : 0,
-    user_canvas_managed : 0,
-    ume_block : 1,
-    can_close : 0,
-    archive : "tetris",
-    gui_debug : 3,
-    cdn : "https://pygame-web.github.io/archives/0.9/",
-    autorun : 0,
-    PYBUILD : "3.12"
-}
-
-</script>
-
-    <title>tetris</title>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="height=device-height, initial-scale=1.0">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes"/>
-
-    <link rel="prefetch" href="https://pygame-web.github.io/archives/0.9/pythonrc.py">
-    <link rel="prefetch" href="https://pygame-web.github.io/archives/0.9/vt/xterm.js">
-    <link rel="prefetch" href="https://pygame-web.github.io/archives/0.9/vt/xterm-addon-image.js">
-    <link rel="prefetch" href="https://pygame-web.github.io/archives/0.9/vt/xterm-addon-image.js">
-
-
-    <link rel="icon" type="image/png" href="favicon.png" sizes="16x16">
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Tetris</title>
+
+    <script type="application/javascript">
+        config = {
+            xtermjs: "1",
+            _sdl2: "canvas",
+            user_canvas: 0,
+            user_canvas_managed: 0,
+            ume_block: 1,
+            can_close: 0,
+            archive: "tetris",
+            gui_debug: 3,
+            cdn: "https://pygame-web.github.io/archives/0.9/",
+            autorun: 0,
+            PYBUILD: "3.12"
+        }
+    </script>
 
     <style>
-        #status {
-            display: inline-block;
-            vertical-align: top;
-            margin-top: 20px;
-            margin-left: 30px;
-            font-weight: bold;
-            color: rgb(120, 120, 120);
-        }
-
-        #progress {
-            height: 20px;
-            width: 300px;
-        }
-
-        div.emscripten { text-align: center; }
-        div.emscripten_border { border: 1px solid black; }
-        div.thick_border { border: 4px solid black; }
-
-        /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
-        /* average size of droid screen 470dp x 320dp  */
-        canvas.emscripten {
-            border: 0px none;
-            background-color: transparent;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
-
-            padding: 0;
-            margin: 0 auto;
-
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
-        }
-
         body {
-            font-family: arial;
             margin: 0;
-            padding: none;
-            background-color:powderblue;
+            background: black;
+            color: white;
+            font-family: monospace;
         }
 
-        .topright{
-           position:absolute;
-           top:0px;
-           right:0px;
+        #canvas {
+            width: 100vw;
+            height: 100vh;
+            background: black;
+            display: block;
         }
 
-        .bottomright {
-            position:absolute;
-            top: 40%;
-            right: 0px;
+        #startbutton {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            font-size: 22px;
+            cursor: pointer;
+            border-radius: 10px;
         }
 
-        .center {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .trinfo{
-           position:relative;
-           right:0px;
-           border: 1px solid black;
-        }
-
-        .framed{
-           position:relative;
-           top:150px;
-           right:10px;
-           border: 1px solid black;
+        #source {
+            white-space: pre-wrap;
+            padding: 20px;
+            font-size: 13px;
+            background: #111;
+            color: #0f0;
+            overflow-y: auto;
+            max-height: 40vh;
+            border-top: 2px solid #333;
         }
     </style>
 
-    <script src="https://pygame-web.github.io/archives/0.9//browserfs.min.js"></script>
-
+    <script src="https://pygame-web.github.io/archives/0.9/browserfs.min.js"></script>
 </head>
 
 <body>
 
-    <div id="transfer" align=center>
-<!--        <div class="spinner" id='spinner'></div> -->
-        <div class="emscripten" id="status">Downloading...</div>
-        <div class="emscripten">
-            <progress value="0" max="100" id="progress"></progress>
-        </div>
-    </div>
+    <button id="startbutton">Start Game</button>
+
+    <canvas id="canvas"></canvas>
+
+    <!-- FULL PYTHON CODE SHOWN BELOW -->
+    <pre id="source">
+import pygame
+import os
+import sys
+import random
+
+# Initialize pygame
+pygame.init()
+
+# Game window dimensions
+WIDTH, HEIGHT = 620, 600
+GRID_SIZE = 30
+GRID_WIDTH, GRID_HEIGHT = 10, 20
+TOP_MARGIN = HEIGHT - GRID_HEIGHT * GRID_SIZE
+LEFT_MARGIN = (WIDTH - GRID_WIDTH * GRID_SIZE) // 2
+
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+GRAY = (128, 128, 128)
+
+FALL_SPEED_NORMAL = 500
+FALL_SPEED_FAST = 50
+
+TETROMINOS = {
+    'I': [[(0, 1), (1, 1), (2, 1), (3, 1)],
+          [(1, 0), (1, 1), (1, 2), (1, 3)]],
+    'O': [[(0, 0), (1, 0), (0, 1), (1, 1)]],
+    'T': [[(1, 0), (0, 1), (1, 1), (2, 1)],
+          [(1, 0), (1, 1), (2, 1), (1, 2)],
+          [(0, 1), (1, 1), (2, 1), (1, 2)],
+          [(1, 0), (0, 1), (1, 1), (1, 2)]],
+    'S': [[(1, 0), (2, 0), (0, 1), (1, 1)],
+          [(0, 0), (0, 1), (1, 1), (1, 2)]],
+    'Z': [[(0, 0), (1, 0), (1, 1), (2, 1)],
+          [(2, 0), (1, 1), (2, 1), (1, 2)]],
+    'J': [[(0, 0), (0, 1), (1, 1), (2, 1)],
+          [(1, 0), (2, 0), (1, 1), (1, 2)],
+          [(0, 1), (1, 1), (2, 1), (2, 2)],
+          [(1, 0), (1, 1), (0, 2), (1, 2)]],
+    'L': [[(2, 0), (0, 1), (1, 1), (2, 1)],
+          [(1, 0), (1, 1), (1, 2), (2, 2)],
+          [(0, 1), (1, 1), (2, 1), (0, 2)],
+          [(0, 0), (1, 0), (1, 1), (1, 2)]],
+}
+
+COLORS = {
+    'I': (0, 255, 255),
+    'O': (255, 255, 0),
+    'T': (128, 0, 128),
+    'S': (0, 255, 0),
+    'Z': (255, 0, 0),
+    'J': (0, 0, 255),
+    'L': (255, 165, 0),
+}
+
+class Tetromino:
+    def __init__(self, x, y, shape_name):
+        self.x = x
+        self.y = y
+        self.shape_name = shape_name
+        self.shape = TETROMINOS[shape_name]
+        self.color = COLORS[shape_name]
+        self.rotation = 0
+
+    def get_shape(self):
+        return self.shape[self.rotation]
+
+    def rotate(self):
+        self.rotation = (self.rotation + 1) % len(self.shape)
 
 
-    <canvas class="emscripten" id="canvas"
-width="1024"
-height="600"
-    oncontextmenu="event.preventDefault()" tabindex=1>
-    </canvas>
+class Tetris:
+    def __init__(self, screen):
+        self.screen = screen
+        self.grid = [[BLACK for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+        self.score = 0
+        self.level = 1
+        self.fall_time = 0
+        self.fall_speed = FALL_SPEED_NORMAL
+        self.piece_queue = []
+        self.hold_piece = None
+        self.can_hold = True
+        self.active_piece = self.get_next_piece()
+        self.game_over = False
+        self.down_press_time = None
+        try:
+            self.load_background_music()
+        except Exception:
+            pass
 
-    <div id=html></div>
+    def load_background_music(self, assets_subdir="assets", volume=0.5):
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+        except Exception:
+            return
 
-    <div id=crt  class=bottomright >
+        cwd_candidates = [
+            os.path.join(os.getcwd(), assets_subdir),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", assets_subdir)),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), assets_subdir)),
+        ]
 
-        <div id="system" hidden>
-            <div class="button-container">
-                <button id="aiostop" disabled>AIO ⏏︎</button>
-                <button id="aiopaused_true" disabled>AIO ■</button>
-                <button id="aiopaused_false" disabled>AIO ▶</button>
-                <button id="pygame_mixer_music_pause" disabled>Music ■</button>
-            </div>
+        audio_exts = ('.mp3', '.ogg', '.wav')
+        found = None
+        for path in cwd_candidates:
+            if path and os.path.isdir(path):
+                for fname in os.listdir(path):
+                    if fname.lower().endswith(audio_exts):
+                        found = os.path.join(path, fname)
+                        break
+            if found:
+                break
 
-            <div class="button-container">
-                <div id=load_min>min</div>
-                <div id=load_avg>avg</div>
-                <div id=load_max>max</div>
-              <button id="load_rst" disabled>RESET</button>
-            </div>
+        if not found:
+            return
 
-            <div id="level">(battery level unknown)</div>
-            <div id="stateBattery">(charging state unknown)</div>
+        try:
+            pygame.mixer.music.load(found)
+            pygame.mixer.music.set_volume(volume)
+            pygame.mixer.music.play(-1)
+        except Exception:
+            return
 
-        </div>
+    def get_next_piece(self):
+        if len(self.piece_queue) < 7:
+            self.refill_queue()
+        shape_name = self.piece_queue.pop(0)
+        return Tetromino(GRID_WIDTH // 2 - 2, 0, shape_name)
 
-        <div id=box class="emscripten_border" hidden=true>
+    def refill_queue(self):
+        bag = list(TETROMINOS.keys())
+        random.shuffle(bag)
+        self.piece_queue.extend(bag)
 
-            <div id="info" class="trinfo"></div>
+    def draw_grid(self):
+        for y in range(GRID_HEIGHT):
+            for x in range(GRID_WIDTH):
+                pygame.draw.rect(self.screen, self.grid[y][x],
+                    (LEFT_MARGIN + x * GRID_SIZE, TOP_MARGIN + y * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+                pygame.draw.rect(self.screen, GRAY,
+                    (LEFT_MARGIN + x * GRID_SIZE, TOP_MARGIN + y * GRID_SIZE, GRID_SIZE, GRID_SIZE), 1)
 
-            <iframe id="iframe" class="framed" name="iframe"
-width="470px" height="90%"
-allowtransparency="true"
-style="z-index: 10;"
-style="background: #FFFFFF;"
-frameborder="1"
-                allowfullscreen="true"
-                webkitallowfullscreen="true"
-                msallowfullscreen="true"
-                mozallowfullscreen="true"
-                sandbox="allow-same-origin allow-top-navigation allow-scripts allow-pointer-lock"
-                allow="autoplay; fullscreen *; geolocation; microphone; camera; midi; monetization; xr-spatial-tracking; gamepad; gyroscope; accelerometer; xr; cross-origin-isolated"
-                src="https://pygame-web.github.io/archives/0.9/empty.html"
-                scrolling="yes">
-            </iframe>
-        </div>
+    def draw_piece(self, piece, offset_x=0, offset_y=0):
+        shape = piece.get_shape()
+        for x, y in shape:
+            pygame.draw.rect(self.screen, piece.color,
+                (LEFT_MARGIN + (piece.x + x + offset_x) * GRID_SIZE,
+                 TOP_MARGIN + (piece.y + y + offset_y) * GRID_SIZE,
+                 GRID_SIZE, GRID_SIZE))
 
-    </div>
+    def get_restart_button_rect(self):
+        return pygame.Rect(LEFT_MARGIN - 150, TOP_MARGIN + 200, 120, 40)
+
+    def draw_sidebar(self):
+        font = pygame.font.Font(None, 30)
+        text = font.render("NEXT", True, BLACK)
+        self.screen.blit(text, (LEFT_MARGIN + GRID_WIDTH * GRID_SIZE + 20, TOP_MARGIN + 20))
+
+        for i, shape_name in enumerate(self.piece_queue[:7]):
+            temp_piece = Tetromino(0, 0, shape_name)
+            for x, y in temp_piece.get_shape():
+                pygame.draw.rect(self.screen, temp_piece.color,
+                    (LEFT_MARGIN + GRID_WIDTH * GRID_SIZE + 20 + x * GRID_SIZE,
+                     TOP_MARGIN + 50 + i * (4 * GRID_SIZE) + y * GRID_SIZE,
+                     GRID_SIZE, GRID_SIZE))
+
+        text = font.render("HOLD", True, BLACK)
+        self.screen.blit(text, (LEFT_MARGIN - 150, TOP_MARGIN + 20))
+
+        if self.hold_piece:
+            temp_piece = self.hold_piece
+            for x, y in temp_piece.get_shape():
+                pygame.draw.rect(self.screen, temp_piece.color,
+                    (LEFT_MARGIN - 150 + x * GRID_SIZE,
+                     TOP_MARGIN + 60 + y * GRID_SIZE,
+                     GRID_SIZE, GRID_SIZE))
+
+        text = font.render("Score:", True, BLACK)
+        self.screen.blit(text, (LEFT_MARGIN - 150, TOP_MARGIN + 300))
+        self.screen.blit(font.render(str(self.score), True, BLACK),
+                         (LEFT_MARGIN - 150, TOP_MARGIN + 350))
+
+        btn_rect = self.get_restart_button_rect()
+        pygame.draw.rect(self.screen, GRAY, btn_rect)
+        pygame.draw.rect(self.screen, BLACK, btn_rect, 2)
+        btn_font = pygame.font.Font(None, 28)
+        text_rect = btn_font.render("Restart", True, BLACK).get_rect(center=btn_rect.center)
+        self.screen.blit(btn_font.render("Restart", True, BLACK), text_rect)
+
+    def check_collision(self, piece, dx=0, dy=0):
+        for x, y in piece.get_shape():
+            new_x = piece.x + x + dx
+            new_y = piece.y + y + dy
+            if not (0 <= new_x < GRID_WIDTH and 0 <= new_y < GRID_HEIGHT and self.grid[new_y][new_x] == BLACK):
+                return True
+        return False
+
+    def lock_piece(self, piece):
+        for x, y in piece.get_shape():
+            self.grid[piece.y + y][piece.x + x] = piece.color
+        self.check_lines()
+        self.can_hold = True
+
+    def check_lines(self):
+        new_grid = [row for row in self.grid if any(cell == BLACK for cell in row)]
+        lines_cleared = GRID_HEIGHT - len(new_grid)
+
+        if lines_cleared > 0:
+            empty = [[BLACK for _ in range(GRID_WIDTH)] for __ in range(lines_cleared)]
+            self.grid = empty + new_grid
+
+            if lines_cleared == 1:
+                self.score += 100 * self.level
+            elif lines_cleared == 2:
+                self.score += 300 * self.level
+            elif lines_cleared == 3:
+                self.score += 500 * self.level
+            elif lines_cleared == 4:
+                self.score += 800 * self.level
+
+            if self.score // (1000 * self.level) > self.level:
+                self.level += 1
+                self.fall_speed = max(100, 500 - (self.level - 1) * 50)
+
+    def update(self, dt):
+        self.fall_time += dt
+        if self.fall_time >= self.fall_speed:
+            self.fall_time = 0
+            if not self.check_collision(self.active_piece, dy=1):
+                self.active_piece.y += 1
+            else:
+                self.lock_piece(self.active_piece)
+                self.active_piece = self.get_next_piece()
+                if self.check_collision(self.active_piece):
+                    self.game_over = True
+
+    def handle_input(self, events, keys):
+        for event in events:
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    oldrot = self.active_piece.rotation
+                    self.active_piece.rotate()
+                    if self.check_collision(self.active_piece):
+                        self.active_piece.rotation = oldrot
+                elif event.key == pygame.K_SPACE:
+                    while not self.check_collision(self.active_piece, dy=1):
+                        self.active_piece.y += 1
+                    self.lock_piece(self.active_piece)
+                    self.active_piece = self.get_next_piece()
+                    if self.check_collision(self.active_piece):
+                        self.game_over = True
+                elif event.key == pygame.K_s and self.can_hold:
+                    if self.hold_piece:
+                        self.hold_piece, self.active_piece = self.active_piece, self.hold_piece
+                        self.active_piece.x = GRID_WIDTH // 2 - 2
+                        self.active_piece.y = 0
+                        self.active_piece.rotation = 0
+                    else:
+                        self.hold_piece = self.active_piece
+                        self.active_piece = self.get_next_piece()
+                        self.hold_piece.x = 0
+                        self.hold_piece.y = 0
+                        self.hold_piece.rotation = 0
+                    self.can_hold = False
+
+                elif event.key == pygame.K_DOWN:
+                    if not self.check_collision(self.active_piece, dy=1):
+                        self.active_piece.y += 1
+                    self.down_press_time = pygame.time.get_ticks()
+
+                elif event.key == pygame.K_LEFT and not self.check_collision(self.active_piece, dx=-1):
+                    self.active_piece.x -= 1
+
+                elif event.key == pygame.K_RIGHT and not self.check_collision(self.active_piece, dx=1):
+                    self.active_piece.x += 1
+
+                elif event.key == pygame.K_r:
+                    self.restart()
+
+            elif event.type == pygame.KEYUP:
+                if event.key == pygame.K_DOWN:
+                    self.down_press_time = None
+                    self.fall_speed = FALL_SPEED_NORMAL
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.get_restart_button_rect().collidepoint(event.pos):
+                    self.restart()
+
+        if keys[pygame.K_DOWN] and self.down_press_time:
+            if pygame.time.get_ticks() - self.down_press_time >= 1000:
+                self.fall_speed = FALL_SPEED_FAST
+        else:
+            self.fall_speed = FALL_SPEED_NORMAL
+
+    def Game_end(self):
+        font = pygame.font.Font(None, 50)
+        text = font.render("GAME OVER", True, BLACK)
+        rect = text.get_rect(center=(WIDTH/2, HEIGHT/2))
+        self.screen.blit(text, rect)
+
+    def restart(self):
+        self.grid = [[BLACK for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+        self.score = 0
+        self.level = 1
+        self.fall_time = 0
+        self.fall_speed = FALL_SPEED_NORMAL
+        self.piece_queue = []
+        self.refill_queue()
+        self.hold_piece = None
+        self.can_hold = True
+        self.active_piece = self.get_next_piece()
+        self.game_over = False
+        self.down_press_time = None
 
 
-    <div id="dlg" hidden>
-        <input type="file" id="dlg_multifile" multiple accept="image/*">
-        <label for="dlg_multifile">Select files</label>
-    </div>
+def main():
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Tetris")
+    clock = pygame.time.Clock()
+    game = Tetris(screen)
+    pygame.key.set_repeat(0)
 
-    <div id="pyconsole">
-        <div id="terminal" tabIndex=1 align="left"></div>
-    </div>
+    while True:
+        events = pygame.event.get()
+        keys = pygame.key.get_pressed()
+        game.handle_input(events, keys)
 
-    <script type="application/javascript">
+        dt = clock.tick(60)
+        if not game.game_over:
+            game.update(dt)
 
-    async function custom_onload(debug_hidden) {
-        // this is called before anything python is loaded
-        // make your js customization here
-        console.log(__FILE__, "custom_onload")
+        screen.fill(WHITE)
+        game.draw_grid()
+        game.draw_piece(game.active_piece)
+        game.draw_sidebar()
 
-        pyconsole.hidden = debug_hidden
-        system.hidden = debug_hidden
-        transfer.hidden = debug_hidden
-        info.hidden = debug_hidden
-        box.hidden =  debug_hidden
+        if game.game_over:
+            game.Game_end()
 
-    }
+        pygame.display.flip()
 
-    function custom_prerun(){
-        // no python main and no (MEMFS + VFS) yet.
-        console.log(__FILE__, "custom_prerun")
 
-    }
+main()
+    </pre>
 
-    function custom_postrun(){
-        // python main and no VFS filesystem yet.
-        console.log(__FILE__, "custom_postrun")
-
-        // prevent ff horizontal scroll
-        window.addEventListener("keydown", function(e) {
-            if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
-                if (!python.config.debug)
-                    e.preventDefault();
-            }
-        }, false);
-
-    }
-
-    function debug() {
-        // allow to gain access to dev tools from js console
-        // but only on desktop. difficult to reach when in iframe
-        python.config.debug = true
-        custom_onload(false)
-        Module.PyRun_SimpleString("shell.uptime()")
-        window_resize()
-    }
-
-    function info_inline(data){
-        document.getElementById("info").innerHTML = data
-    }
-
-    function info_online(url) {
-        // display info about current APK
-        fetch( url /*, options */)
-            .then((response) => response.text())
-            .then((html) => {
-                info_inline(html);
-        })
-        .catch((error) => {
-            console.warn(error);
-        });
-    }
-
-    function frame_online(url) {
-        window.frames["iframe"].location = url;
-    }
-
+    <script type="module">
+        document.getElementById("startbutton").onclick = () => {
+            window.pygbag_user_ready = true;
+            document.getElementById("startbutton").remove();
+            import("https://pygame-web.github.io/archives/0.9/pythons.js");
+        };
     </script>
 
 </body>
