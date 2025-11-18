@@ -207,10 +207,18 @@ class Tetris:
 
     def check_collision(self, piece, dx=0, dy=0):
         for x, y in piece.get_shape():
-            new_x, new_y = piece.x + x + dx, piece.y + y + dy
-            if not (0 <= new_x < GRID_WIDTH and 0 <= new_y < GRID_HEIGHT and self.grid[new_y][new_x] == BLACK):
+            new_x = piece.x + x + dx
+            new_y = piece.y + y + dy
+
+            # First check bounds
+            if not (0 <= new_x < GRID_WIDTH and 0 <= new_y < GRID_HEIGHT):
+                return True
+
+            # Then check if cell is occupied
+            if self.grid[new_y][new_x] != BLACK:
                 return True
         return False
+
 
     def lock_piece(self, piece):
         for x, y in piece.get_shape():
