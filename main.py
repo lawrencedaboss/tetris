@@ -3,9 +3,6 @@ import os
 import sys
 import random
 
-# Initialize pygame
-pygame.init()
-
 # Game window dimensions
 WIDTH, HEIGHT = 620, 600
 GRID_SIZE = 30
@@ -344,9 +341,9 @@ class Tetris:
 
 
 
-
-
 def main():
+    # Initialize pygame
+    pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Tetris")
     clock = pygame.time.Clock()
@@ -376,4 +373,5 @@ def main():
 
         pygame.display.flip()
 
-main()
+if __name__ == "__main__":
+    main()
