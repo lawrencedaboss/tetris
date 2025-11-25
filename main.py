@@ -100,13 +100,9 @@ class Tetris:
             # If mixer can't init, abort gracefully
             return
 
-        cwd_candidates = [
-            os.path.join(os.getcwd(), assets_subdir),
-            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", assets_subdir)),
-            os.path.abspath(os.path.join(os.path.dirname(__file__), assets_subdir)),
-        ]
+        cwd_candidates = [os.path.join(os.getcwd(), assets_subdir)]
 
-        audio_exts = ('.mp3', '.ogg', '.wav')
+        audio_exts = ('.ogg', '.wav')
         found = None
         for path in cwd_candidates:
             if path and os.path.isdir(path):
