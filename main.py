@@ -1,3 +1,4 @@
+import asyncio
 import pygame
 import os
 import sys
@@ -337,37 +338,48 @@ class Tetris:
 
 
 
-def main():
+async def main():
     # Initialize pygame
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Tetris")
     clock = pygame.time.Clock()
     game = Tetris(screen)
-    
+
     # Disable key repeat initially. We handle movement with a mix of KEYDOWN and get_pressed.
     pygame.key.set_repeat(0)
 
-    while True:
-        # Poll events once per frame and pass them to the game input handler
-        events = pygame.event.get()
-        keys_pressed = pygame.key.get_pressed()
-        game.handle_input(events, keys_pressed)
+    running = True
+    try:
+        while running:
+            # Poll events once per frame and pass them to the game input handler
+            events = pygame.event.get()
+            for e in events:
+                if e.type == pygame.QUIT:
+                    running = False
+            keys_pressed = pygame.key.get_pressed()
+            game.handle_input(events, keys_pressed)
 
-        # Update game when not over
-        dt = clock.tick(60)
-        if not game.game_over:
-            game.update(dt)
+            # Update game when not over
+            dt = clock.tick(60)
+            if not game.game_over:
+                game.update(dt)
 
-        # Drawing (always draw sidebar so restart button is visible)
-        screen.fill(WHITE)
-        game.draw_grid()
-        game.draw_piece(game.active_piece)
-        game.draw_sidebar()
-        if game.game_over:
-            game.Game_end()
+            # Drawing (always draw sidebar so restart button is visible)
+            screen.fill(WHITE)
+            game.draw_grid()
+            game.draw_piece(game.active_piece)
+            game.draw_sidebar()
+            if game.game_over:
+                game.Game_end()
 
-        pygame.display.flip()
+            pygame.display.flip()
+
+            # yield to asyncio so other coroutines (if any) can run
+            await asyncio.sleep(0)
+    finally:
+        pygame.quit()
+
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
